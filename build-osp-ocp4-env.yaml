@@ -2,6 +2,32 @@
 - name: "Build Openshift 4 on Openstack Environment"
   hosts: localhost
   tasks:
+    - name: "List RHSM repositories to save time enabling"
+      shell: |
+        yum repolist
+      become: yes
+      register: repolist
+      when: ansible_distribution_major_version|int >= 7 and ansible_distribution == 'RedHat'
+
+    - name: "Enable RHSM repositories"
+      rhsm_repository:
+        name: "{{ item }}"
+      loop:
+        - "rhel-7-server-devtools-rpms"
+        - "rhel-7-server-rpms"
+        - "rhel-7-server-extras-rpms"
+      become: yes
+      when: ansible_distribution_major_version|int >= 7 and ansible_distribution == 'RedHat' and item not in repolist.stdout
+
+    - name: "Install epel repo for RHEL"
+      shell: |
+        sudo yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+      args:
+        warn: false
+        creates: "/etc/yum.repos.d/epel.repo"
+      become: yes
+      when: ansible_distribution_major_version|int >= 7 and ansible_distribution == 'RedHat'
+
     - name: "Installing build dependency rpms"
       yum:
         name: "{{ build_rpms }}"
