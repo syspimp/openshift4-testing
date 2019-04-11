@@ -81,7 +81,7 @@ then
 fi
 
 #exit on error
-set -x
+set -e
 
 # run playbook to create the clouds.yaml
 ansible-playbook --extra-vars "currentdir=$(pwd)" build-cloud-creds.yaml
@@ -100,16 +100,15 @@ source /tmp/floatingIP.txt
 #read -p "[enter] or Ctrl-C and edit /tmp/floatingIP.txt"
 
 # run the openshift-install binary to create the config, and then edit it with the floating Ip we created
-echo -e "\nRunning the openshift-install binary to create an OCP4 cluster, save the configuration in the directory \n\
-~/go/src/github.com/openshift/installer/initial\n\
+echo -e "\nRunning the openshift-install binary to create an OCP4 cluster, and save the configuration in the directory \n\
+~/go/src/github.com/openshift/installer/initial\n"
 
-and then edit the install-config.yaml file to add the floating ip we created"
 cd ~/go/src/github.com/openshift/installer
 bin/openshift-install --dir=initial create install-config
-
 # fix the floating ip in the install-config.yaml
 if [[ ! -z "$floatingIP" ]]
 then
+  echo "\nNow we edit the install-config.yaml file to add the floating ip we created.\n"
   #sed -i -e "s/    lbFloatingIP: \"\"/    lbFloatingIP: \"${floatingIP}\"/g" initial/install-config.yaml
   ansible localhost -m lineinfile -a "dest=initial/install-config.yaml regexp='^    lbFloatingIP: \"\"' line='    lbFloatingIP: \"${floatingIP}\"' state=present backrefs=yes"
 else
@@ -117,11 +116,10 @@ else
 fi
 
 # create the cluster
-date
 echo -e "\nRunning the openshift-install binary again to *use* the configuration in the directory \n\
 ~/go/src/github.com/openshift/installer/initial\n\n\
-This will take about 1 hour.\n\n"
-echo -e "Some useful commands to run in another terminal\n\
+This will take about 1 hour.\n\n
+Some useful commands to run in another terminal\n\
   - for these examples, ip's will be similar to yours, but not exact\n\
   - the user is 'core' and the api server is the load balancer for the cluster\n\
   - watch the logs on the api server:\n\
@@ -142,6 +140,8 @@ fi
 
 # resume on error to troubleshoot
 set +e
+
+echo "Start: $(date)"
 
 if [[ "$1" != "-d" ]];
 then
@@ -192,4 +192,4 @@ else
   bin/openshift-install --dir=initial destroy install-config from the installer directory\n\
   To re-run this file from scratch, run: rm -rf ~/go/src/github.com/openshift && ./setup.sh"
 fi
-
+echo "End: $(date)"
