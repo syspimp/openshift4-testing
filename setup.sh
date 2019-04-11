@@ -1,5 +1,18 @@
 #!/bin/bash
-if [[ "$1" != "-y" ]];
+if [[ "$1" == "-h" ]];
+then
+  echo -e "$0 Wrapper to set up Openshift on Openstack Ansible playbooks\n\
+  usage:\n\
+    $0\n\
+    run in interactive mode\n\n\
+    $0 -y\n\
+    run in non-interactive mode\n\n\
+    $0 -d\n\
+    run in debug level non-interactive mode\n\n"
+  exit 0;
+fi
+
+if [[ "$1" != "-y" || "$1" != "-d" ]];
 then
   echo -e "Prerequisites:
   - 1. you will need to get an openshift pull secret from\n\
@@ -47,10 +60,24 @@ rpm -qa | grep ansible-2.7 >/dev/null
 
 if [ $? -ne 0 ]
 then
-  echo -e "\nnYou need to install ansible 2.7\n\nIf on RHEL please execute commands:\n\
-  sudo subscription-manager repos --enable rhel-7-server-ansible-2.7-rpms\n\
-  sudo yum -y install ansible"
-  exit 1;
+  echo -e "\nnYou need to install ansible 2.7. I'll install it now.\n\n"
+  if [ -e /etc/redhat-release ]
+  then
+    if grep Fedora /etc/redhat-release
+    then
+      sudo yum -y install ansible
+    elif grep "Red Hat" /etc/redhat-release
+    then
+      sudo subscription-manager repos --enable rhel-7-server-ansible-2.7-rpms
+      sudo yum -y install ansible
+    else
+      echo -e "This script was only tested on RHEL 7 and Fedora 29. You will have to manually install ansible 2.7 and try again"
+      exit 1;
+    fi
+  else
+    echo -e "This script was only tested on RHEL 7 and Fedora 29. You will have to manually install ansible 2.7 and try again"
+    exit 1;
+  fi
 fi
 
 #exit on error
@@ -92,7 +119,8 @@ fi
 # create the cluster
 date
 echo -e "\nRunning the openshift-install binary again to *use* the configuration in the directory \n\
-~/go/src/github.com/openshift/installer/initial"
+~/go/src/github.com/openshift/installer/initial\n\n\
+This will take about 1 hour.\n\n"
 echo -e "Some useful commands to run in another terminal\n\
   - for this example, 'dev.maskedadmins.com' is the basename\n\
   - and 'cluster4' is the clustername\n\
@@ -109,8 +137,16 @@ echo -e "Some useful commands to run in another terminal\n\
   - and so on\n\n"
 
 sleep 5
-#bin/openshift-install --log-level=debug --dir=initial create cluster
-bin/openshift-install --dir=initial create cluster
+if [[ "$1" != "-y" || "$1" != "-d" ]];
+then
+  read -p "[enter] or Ctrl-C and exit"
+fi
+if [[ "$1" != "-d" ]];
+then
+  bin/openshift-install --log-level=debug --dir=initial create cluster
+else
+  bin/openshift-install --dir=initial create cluster
+fi
 
 if [[ $? -eq 0 ]]
 then
