@@ -290,7 +290,7 @@
 
     - name: "Adding floating ip to include file for step2.sh"
       copy: 
-        content: "floatingIP={{ get_ip.server.public_v4 }}"
+        content: "floatingIP={{ get_ip.server.public_v4 }}\nbasedomain={{ cluster['basedomain'] }}\nclustername={{ cluster['name'] }}"
         dest: "/tmp/floatingIP.txt"
         mode: 0644
 
