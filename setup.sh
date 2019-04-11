@@ -12,7 +12,7 @@ then
   exit 0;
 fi
 
-if [[ "$1" != "-y" || "$1" != "-d" ]];
+if [[ "$1" != "-y" && "$1" != "-d" ]];
 then
   echo -e "Prerequisites:
   - 1. you will need to get an openshift pull secret from\n\
@@ -133,7 +133,7 @@ Some useful commands to run in another terminal\n\
   - and so on\n\n"
 
 sleep 5
-if [[ "$1" != "-y" || "$1" != "-d" ]];
+if [[ "$1" != "-y" && "$1" != "-d" ]];
 then
   read -p "[enter] or Ctrl-C and exit"
 fi
@@ -143,7 +143,7 @@ set +e
 
 echo "Start: $(date)"
 
-if [[ "$1" != "-d" ]];
+if [[ "$1" == "-d" ]];
 then
   bin/openshift-install --log-level=debug --dir=initial create cluster
 else
