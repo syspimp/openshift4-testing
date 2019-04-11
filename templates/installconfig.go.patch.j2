@@ -1,0 +1,18 @@
+--- installer/pkg/types/installconfig.go.orig	2019-04-11 11:32:42.673833806 -0400
++++ installer/pkg/types/installconfig.go	2019-04-11 11:32:56.450857585 -0400
+@@ -26,6 +26,7 @@
+ 	// platforms presented to the user in the interactive wizard.
+ 	PlatformNames = []string{
+ 		aws.Name,
++		openstack.Name,
+ 	}
+ 	// HiddenPlatformNames is a slice with all the
+ 	// hidden-but-supported platform names. This list isn't presented
+@@ -33,7 +34,6 @@
+ 	HiddenPlatformNames = []string{
+ 		none.Name,
+ 		azure.Name,
+-		openstack.Name,
+ 		vsphere.Name,
+ 	}
+ )

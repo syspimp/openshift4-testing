@@ -1,0 +1,29 @@
+--- installer/cmd/openshift-install/create.go.orig	2019-04-04 13:41:04.438575266 -0400
++++ installer/cmd/openshift-install/create.go	2019-04-04 13:41:41.868422780 -0400
+@@ -235,7 +235,7 @@
+ 
+ 	discovery := client.Discovery()
+ 
+-	apiTimeout := 30 * time.Minute
++	apiTimeout := 60 * time.Minute
+ 	logrus.Infof("Waiting up to %v for the Kubernetes API at %s...", apiTimeout, config.Host)
+ 	apiContext, cancel := context.WithTimeout(ctx, apiTimeout)
+ 	defer cancel()
+@@ -269,7 +269,7 @@
+ 		return errors.Wrap(err, "waiting for Kubernetes API")
+ 	}
+ 
+-	eventTimeout := 30 * time.Minute
++	eventTimeout := 60 * time.Minute
+ 	logrus.Infof("Waiting up to %v for the bootstrap-complete event...", eventTimeout)
+ 	return waitForEvent(ctx, client.CoreV1().RESTClient(), "bootstrap-complete", eventTimeout)
+ }
+@@ -370,7 +370,7 @@
+ 		return "", errors.Wrap(err, "creating a route client")
+ 	}
+ 
+-	consoleRouteTimeout := 10 * time.Minute
++	consoleRouteTimeout := 20 * time.Minute
+ 	logrus.Infof("Waiting up to %v for the openshift-console route to be created...", consoleRouteTimeout)
+ 	consoleRouteContext, cancel := context.WithTimeout(ctx, consoleRouteTimeout)
+ 	defer cancel()

@@ -1,0 +1,275 @@
+---
+- name: "Build Openshift 4 on Openstack Environment"
+  hosts: localhost
+  tasks:
+    - name: "Installing build dependency rpms"
+      yum:
+        name: "{{ build_rpms }}"
+        state: latest
+      become: true
+
+    - name: "Installing build dependency rpms for Fedora 29 and greater"
+      yum:
+        name: "{{ item }}"
+        state: latest
+      become: true
+      loop:
+        - python3-devel
+        - redhat-rpm-config-118-1.fc29.noarch
+      when: ansible_distribution == 'Fedora' and ansible_distribution_version|int >= 29
+
+    - pip:
+        name: openstacksdk
+        extra_args: --user
+
+    - pip:
+        name: decorator
+        extra_args: --upgrade --user
+
+    - file:
+        path: "{{ item }}"
+        state: directory
+        mode: 0755
+      loop:
+        -  "{{ homedir }}/go"
+        -  "{{ homedir }}/go/bin"
+        -  "{{ homedir }}/go/pkg"
+        -  "{{ homedir }}/go/src/github.com/openshift"
+
+    - name: "Install dep for go"
+      shell: |
+        curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+      args:
+        warn: false
+        creates: "{{ homedir }}/go/bin/dep"
+
+    - name: "Download the OC linux binary"
+      unarchive:
+        src: https://mirror.openshift.com/pub/openshift-v3/clients/4.0.22/linux/oc.tar.gz
+        #src: https://mirror.openshift.com/pub/openshift-v3/clients/4.0.22/macosx/oc.tar.gz
+        dest: "/usr/local/bin"
+        remote_src: yes
+      become: yes
+
+    - name: "Clone the github.com/openshift/installer repo in the proper place"
+      git:
+        repo: "https://github.com/openshift/installer.git"
+        dest: "{{ homedir }}/go/src/github.com/openshift/installer"
+
+    - name: "Checkout a specific revision of openshift installer"
+      shell: |
+        git checkout b4b6ee8631cdd4d566e4fe800ddcfd4ad87afcbc
+      args:
+        chdir: "{{ homedir }}/go/src/github.com/openshift/installer"
+
+    - name: "Adding unapplied patch found in github.com/openshift/installer merge requests, remove as needed."
+      template: 
+        src: "{{ item }}.j2"
+        dest: "{{ homedir }}/go/src/github.com/openshift/{{ item }}"
+        mode: 0644
+      loop:
+        -  "installconfig.go.patch"
+        -  "openstack.go.patch"
+#        -  "main.tf.patch"
+        -  "create.go.patch"
+
+    - name: "Adding clouds.yaml"
+      template: 
+        src: "clouds.yaml.j2"
+        dest: "{{ homedir }}/go/src/github.com/openshift/installer/clouds.yaml"
+        mode: 0644
+
+    - name: "this patch enables the openstack config option"
+      shell: |
+        patch -p0 < ./installconfig.go.patch
+      args:
+        chdir: "{{ homedir }}/go/src/github.com/openshift"
+
+    - name: "this patch corrects the default region typo"
+      shell: |
+        patch -p0 < ./openstack.go.patch
+      args:
+        chdir: "{{ homedir }}/go/src/github.com/openshift"
+
+#    - name: "this patch fixes the haproxy container on the api server"
+#      shell: |
+#        patch -p0 < ./main.tf.patch
+#      args:
+#        chdir: "{{ homedir }}/go/src/github.com/openshift"
+
+    - name: "this patch doubles the timeout values so setup can complete"
+      shell: |
+        patch -p0 < ./create.go.patch
+      args:
+        chdir: "{{ homedir }}/go/src/github.com/openshift"
+
+    - name: "building openshift-install binary"
+      shell: |
+        hack/build.sh
+      args:
+        chdir: "{{ homedir }}/go/src/github.com/openshift/installer"
+        creates: "{{ homedir }}/go/src/github.com/openshift/installer/bin/openshift-install"
+       
+    - name: "Setting up the Openstack External Network with vlans"
+      os_network:
+        cloud: "{{ cloud['name'] }}"
+        state: present
+        name: "{{ network['name'] }}"
+        provider_network_type: "{{ network['type'] }}"
+        provider_physical_network: "{{ vlan['physnet'] }}"
+        provider_segmentation_id: "{{ vlan['id'] }}"
+        external: true
+        shared: true
+      when: network['type'] == 'vlan'
+    
+    - name: "Setting up the Openstack External Network without vlans"
+      os_network:
+        cloud: "{{ cloud['name'] }}"
+        state: present
+        name: "{{ network['name'] }}"
+        provider_network_type: "{{ network['type'] }}"
+        external: true
+        shared: true
+      when: network['type'] != 'vlan'
+
+    - name: "Setting up the Openstack subnet"
+      os_subnet:
+        cloud: "{{ cloud['name'] }}"
+        state: present
+        network_name: "{{ network['name'] }}"
+        name: "{{ subnet['name'] }}"
+        cidr: "{{ subnet['cidr'] }}"
+        gateway_ip: "{{ subnet['gateway'] }}"
+        allocation_pool_start: "{{ subnet['dhcp_start'] }}"
+        allocation_pool_end: "{{ subnet['dhcp_end'] }}"
+        dns_nameservers:
+           - "{{ subnet['dns_server'] }}"
+
+    - name: "Floating IP: Creating a temporary network"
+      os_network:
+        cloud: "{{ cloud['name'] }}"
+        state: present
+        name: temp-network
+        external: false
+    
+    - name: "Floating IP: Creating a temporary subnet"
+      os_subnet:
+        cloud: "{{ cloud['name'] }}"
+        state: present
+        network_name: temp-network
+        name: temp-subnet
+        cidr: 192.168.0.0/24
+    
+    - name: "Floating IP: Creating a temporary router and connecting to networks."
+      os_router:
+        cloud: "{{ cloud['name'] }}"
+        state: present
+        name: temp-router
+        network: "{{ network['name'] }}"
+        interfaces:
+          - temp-subnet
+    
+    - name: "Floating IP: Creating a new instance to allocate and assign IP"
+      os_server:
+        cloud: "{{ cloud['name'] }}"
+        state: present
+        name: get_float_ip
+        image: rhcos
+        key_name: "{{ cloud['sshpubkey'] }}"
+        flavor: m1.small
+        network: "temp-network"
+        auto_ip: yes
+      register: get_ip
+    
+#     - name: "Creating floating ip"
+#      os_floating_ip:
+#         cloud: "{{ cloud['name'] }}"
+#         state: present
+#         network: "{{ network_name }}"
+#         server: "get_float_ip"
+#         wait: true
+#         timeout: 180
+#      register: float_ip
+
+    - name: "Floating IP: Deleting the temp instance"
+      os_server:
+        cloud: "{{ cloud['name'] }}"
+        state: absent
+        name: get_float_ip
+        image: rhcos
+        key_name: "{{ cloud['sshpubkey'] }}"
+        floating_ip_pools: "{{ subnet['name'] }}"
+        flavor: m1.small
+        network: "{{ network['name'] }}"
+
+    - name: "Floating IP: Deleting the temp router"
+      os_router:
+        cloud: "{{ cloud['name'] }}"
+        state: absent
+        name: temp-router
+        network: "{{ network['name'] }}"
+        interfaces:
+          - temp-subnet
+
+    - name: "Floating IP: Deleting the temp subnet"
+      os_subnet:
+        cloud: "{{ cloud['name'] }}"
+        state: absent
+        network_name: temp-network
+        name: temp-subnet
+        cidr: 192.168.0.0/24
+    
+    - name: "Floating IP: Deleting the temp subnet"
+      os_network:
+        cloud: "{{ cloud['name'] }}"
+        state: absent
+        name: temp-network
+        external: false
+    
+    - name: "Floating IP"
+      debug:
+        var:  get_ip.server.public_v4
+
+ #   - name: "do something with this too"
+ #     debug:
+ #       var:  float_ip
+ #   
+ #   - name: "do something with this too"
+ #     debug:
+ #       var:  float_ip.floating_ip.floating_ip_address
+
+    - name: "Delete old references to cluster in /etc/hosts"
+      lineinfile:
+        dest: /etc/hosts
+        regexp: "{{ item }}$"
+        state: absent
+      become: yes
+      loop:
+        - "{{ cluster['name'] }}-api.{{ cluster['basedomain'] }}"
+        - "console-openshift-console.apps.{{ cluster['name'] }}.{{ cluster['basedomain'] }}"
+        - "api.{{ cluster['name'] }}.{{ cluster['basedomain'] }}"
+        - "openshift-authentication-openshift-authentication.apps.{{ cluster['name'] }}.{{ cluster['basedomain'] }}"
+
+    - name: "Add Floating IP address /etc/hosts"
+      lineinfile:
+        dest: /etc/hosts
+        line: "{{ get_ip.server.public_v4 }} {{ item }}"
+        state: present
+      become: yes
+      loop:
+        - "{{ cluster['name'] }}-api.{{ cluster['basedomain'] }}"
+        - "console-openshift-console.apps.{{ cluster['name'] }}.{{ cluster['basedomain'] }}"
+        - "api.{{ cluster['name'] }}.{{ cluster['basedomain'] }}"
+        - "openshift-authentication-openshift-authentication.apps.{{ cluster['name'] }}.{{ cluster['basedomain'] }}"
+
+    - name: "Adding floating ip to include file for step2.sh"
+      copy: 
+        content: "floatingIP={{ get_ip.server.public_v4 }}"
+        dest: "/tmp/floatingIP.txt"
+        mode: 0644
+
+    - name: "Message"
+      debug:
+        msg: "Now you may want to setup dns to point to the floating ip {{ get_ip.server.public_v4 }} but your /etc/hosts is enough. To create a cluster, run: cd ~/go/src/github.com/openshift/installer && bin/openshift-install --dir=initial create cluster"
+
+

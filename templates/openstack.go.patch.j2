@@ -1,0 +1,11 @@
+--- installer/pkg/asset/installconfig/openstack/openstack.go.orig	2019-04-01 09:41:30.666154719 -0400
++++ installer/pkg/asset/installconfig/openstack/openstack.go	2019-04-01 09:42:18.480983129 -0400
+@@ -55,7 +55,7 @@
+ 			Prompt: &survey.Select{
+ 				Message: "Region",
+ 				Help:    "The OpenStack region to be used for installation.",
+-				Default: "regionOne",
++				Default: "RegionOne",
+ 				Options: regionNames,
+ 			},
+ 			Validate: survey.ComposeValidators(survey.Required, func(ans interface{}) error {

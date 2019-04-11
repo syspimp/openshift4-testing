@@ -1,0 +1,15 @@
+---
+- name: "Build clouds.yaml to build Openshift 4 on Openstack Environment"
+  hosts: localhost
+  tasks:
+    - name: "Setup check"
+      debug:
+        msg: "You need to edit the group_vars/all file first. Please exit with Ctrl-C"
+      when: (cloud.pass == "xxxxxx") or (currentdir == "")
+
+    - name: "Copy clouds.yaml to current directory"
+      template:
+        src: "clouds.yaml.j2"
+        dest: "{{ currentdir }}/clouds.yaml"
+        mode: 0644
+      when: (currentdir != "") and (cloud.pass != "xxxxxx")

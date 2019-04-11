@@ -1,0 +1,35 @@
+---
+## make sure this is correct. The go/src/ directory goes in your home dir
+homedir: /home/dataylor
+# the name of the cluster and your subdomain for the cluster.
+# urls will look like this: api.cluster4.dev.maskedadmins.com
+cluster:
+  name: cluster4
+  basedomain: dev.maskedadmins.com
+## setup.sh passes this in as an extra var to setup the clouds.yaml for the build playbook
+currentdir: ""
+cloud:
+# installer expects the name openstack
+  name: openstack
+  authurl: http://10.55.102.159:5000/v3
+  user: admin
+  pass: xxxxxx
+  project: Redhat_Lab
+  sshpubkey: dtaylor-openstack
+network:
+  name: Openshift_External
+  type: vlan
+vlan:
+  id: 109
+  physnet: inter-vlan
+## floating ip comes from this subnet
+## make sure it is routable
+subnet:
+  name: OPENSHIFT_109
+  cidr: 10.55.109.0/24
+  gateway: 10.55.109.1
+  dhcp_start: 10.55.109.10
+  dhcp_end: 10.55.109.254
+  dns_server: 10.55.102.5
+build_rpms: ['golang-bin','gcc-c++','git','patch','python2-pip']
+
