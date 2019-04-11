@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 if [[ "$1" != "-y" ]];
 then
   echo -e "Prerequisites:
@@ -47,11 +47,14 @@ rpm -qa | grep ansible-2.7 >/dev/null
 
 if [ $? -ne 0 ]
 then
-  echo -e "You need to install ansible 2.7\n\nIf on RHEL please execute commands:\n\
+  echo -e "\nnYou need to install ansible 2.7\n\nIf on RHEL please execute commands:\n\
   sudo subscription-manager repos --enable rhel-7-server-ansible-2.7-rpms\n\
   sudo yum -y install ansible"
   exit 1;
 fi
+
+#exit on error
+set -x
 
 # run playbook to create the clouds.yaml
 ansible-playbook --extra-vars "currentdir=$(pwd)" build-cloud-creds.yaml
