@@ -1,0 +1,14 @@
+---
+- name: "Build clouds.yaml to build Openshift 4 on Openstack Environment"
+  hosts: localhost
+  tasks:
+    - name: "Setup check"
+      debug:
+        msg: "You need to edit the group_vars/all file first. Please exit with Ctrl-C"
+      when: cloud.pass == "xxxxxx"
+
+    - name: "Copy install-config.yaml to /go/src/github.com/openshift/installer/initial/install-config.yaml"
+      template:
+        src: "install-config.yaml.j2"
+        dest: "{{ homedir }}/go/src/github.com/openshift/installer/initial/install-config.yaml"
+        mode: 0644

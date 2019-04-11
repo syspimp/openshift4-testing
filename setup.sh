@@ -93,7 +93,13 @@ ansible localhost -m lineinfile -a "dest=clouds.yaml regexp='^      region_name:
 # run playbook to create the environment
 # if you don't have to type a password for sudo
 #ansible-playbook build-osp-ocp4-env.yaml
-ansible-playbook --ask-become-pass build-osp-ocp4-env.yaml
+
+if [[ "$1" != "-y" && "$1" != "-d" ]];
+then
+  ansible-playbook --ask-become-pass build-osp-ocp4-env.yaml
+else
+  ansible-playbook build-osp-ocp4-env.yaml
+fi
 
 source /tmp/floatingIP.txt
 #echo "Floating IP is ${floatingIP}. Is this correct?"
@@ -118,9 +124,8 @@ then
     echo "WARNING: Floating IP was not created, you will have to manually add the floating IP to the api instance"
   fi
 else
-  #sed -i -e "s/    lbFloatingIP: \"\"/    lbFloatingIP: \"${floatingIP}\"/g" initial/install-config.yaml
   popd
-  ansible localhost -m -e "floatingIP=${floatingIP}" template -a "src=install-config.yaml.j2 dest='{{ homedir }}/go/src/github.com/openshift/installer/initial/install-config.yaml'"
+  ansible-playbook -e "floatingIP=${floatingIP}" build-install-config.yaml
   pushd ~/go/src/github.com/openshift/installer
 fi
 
