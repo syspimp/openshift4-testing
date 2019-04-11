@@ -122,18 +122,16 @@ echo -e "\nRunning the openshift-install binary again to *use* the configuration
 ~/go/src/github.com/openshift/installer/initial\n\n\
 This will take about 1 hour.\n\n"
 echo -e "Some useful commands to run in another terminal\n\
-  - for this example, 'dev.maskedadmins.com' is the basename\n\
-  - and 'cluster4' is the clustername\n\
-  - the ip's will be similar to yours, but not exact\n\
+  - for these examples, ip's will be similar to yours, but not exact\n\
   - the user is 'core' and the api server is the load balancer for the cluster\n\
   - watch the logs on the api server:\n\
-  - ssh core@api.cluster4.dev.maskedadmins.com 'journalctl -f'\n\
+  - ssh core@api.${clustername}.${basedomain} 'journalctl -f'\n\
   - use the api server as a jump host to the masters:\n\
-  - ssh -J core@api.cluster4.dev.maskedadmins.com core@10.0.0.9\n\
+  - ssh -J core@api.${clustername}.${basedomain} core@10.0.0.9\n\
   - test the api server:\n\
-  - curl -k https://api.cluster4.dev.maskedamins.com:6443\n\
+  - curl -k https://api.${clustername}.${basedomain}:6443\n\
   - list the running pods on the api server:\n\
-  - ssh core@api.cluster4.dev.maskedadmins.com 'sudo podman ls'\n\
+  - ssh core@api.${clustername}.${basedomain} 'sudo podman ls'\n\
   - and so on\n\n"
 
 sleep 5
@@ -141,6 +139,10 @@ if [[ "$1" != "-y" || "$1" != "-d" ]];
 then
   read -p "[enter] or Ctrl-C and exit"
 fi
+
+# resume on error to troubleshoot
+set +e
+
 if [[ "$1" != "-d" ]];
 then
   bin/openshift-install --log-level=debug --dir=initial create cluster
@@ -161,7 +163,28 @@ then
   ssh core@${floatingIP} "cat /etc/redhat-release"
 else
   echo "something went wrong, let's dump some journals"
-  # paste in troubleshooting
+  # be verbose with our commands
+  set -x
+  oc --config=./initial/auth/kubeconfig --namespace=openshift-machine-api get deployments
+  oc --config=./initial/auth/kubeconfig --namespace=openshift-machine-api logs deployments/clusterapi-manager-controllers --container=machine-controller
+  oc --config=./initial/auth/kubeconfig --namespace=openshift-machine-api get csr
+  oc --config=./initial/auth/kubeconfig describe clusterversion
+  oc --config=./initial/auth/kubeconfig get clusterversion
+  #oc --config=./initial/auth/kubeconfig --namespace=openshift-machine-api get csr -o name | xargs oc --config=./initial/auth/kubeconfig adm certificate approve
+  #oc --config=./initial/auth/kubeconfig --namespace=openshift-machine-api logs deployments/clusterapi-manager-controllers --container=clusterapi-manager-controllers
+  #oc --config=./initial/auth/kubeconfig --namespace=openshift-machine-api logs deployments/clusterapi-manager-controllers --container=nodelink-controller
+  #oc --config=./initial/auth/kubeconfig get pods
+  #oc --config initial/auth/kubeconfig get all
+  #oc --config=./initial/auth/kubeconfig get all
+  #vi docs/user/troubleshooting.md
+  #oc get clusterversion -o json|jq ".items[0].status"
+  #oc get clusterversion -o json|jq ".items[0].status"
+
+  set +x
+  echo -e "You might be able to log into the console:\n\
+  https://console-openshift-console.apps.${clustername}.${basedomain}\n\n
+  User: kubeadmin\n\
+  Pass: `cat ./initial/auth/kubeadmin-password`\n"
   echo "the installer is in ~/go/src/github.com/openshift/installer"
   echo "the cluster config is in ~/go/src/github.com/openshift/installer/initial"
   echo "the cluster kubeconfig is in ~/go/src/github.com/openshift/installer/initial/auth"
