@@ -1,0 +1,30 @@
+apiVersion: v1beta4
+baseDomain: {{ cluster['basedomain'] }}
+compute:
+- name: worker
+  platform: {}
+  replicas: 3
+controlPlane:
+  name: master
+  platform: {}
+  replicas: 3
+metadata:
+  creationTimestamp: null
+  name: {{ cluster['name'] }}
+networking:
+  clusterNetwork:
+  - cidr: 10.128.0.0/14
+    hostPrefix: 23
+  machineCIDR: 10.0.0.0/16
+  networkType: OpenShiftSDN
+  serviceNetwork:
+  - 172.30.0.0/16
+platform:
+  openstack:
+    cloud: openstack
+    computeFlavor: m1.large
+    externalNetwork: {{ network['name'] }}
+    lbFloatingIP: "{{ floatingIP }}"
+    region: RegionOne
+    trunkSupport: "1"
+pullSecret: '{{ cluster['pull_secret'] }}'

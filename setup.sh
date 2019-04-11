@@ -103,16 +103,25 @@ source /tmp/floatingIP.txt
 echo -e "\nRunning the openshift-install binary to create an OCP4 cluster, and save the configuration in the directory \n\
 ~/go/src/github.com/openshift/installer/initial\n"
 
-cd ~/go/src/github.com/openshift/installer
-bin/openshift-install --dir=initial create install-config
-# fix the floating ip in the install-config.yaml
-if [[ ! -z "$floatingIP" ]]
+pushd ~/go/src/github.com/openshift/installer
+
+if [[ "$1" != "-y" && "$1" != "-d" ]];
 then
-  echo "\nNow we edit the install-config.yaml file to add the floating ip we created.\n"
-  #sed -i -e "s/    lbFloatingIP: \"\"/    lbFloatingIP: \"${floatingIP}\"/g" initial/install-config.yaml
-  ansible localhost -m lineinfile -a "dest=initial/install-config.yaml regexp='^    lbFloatingIP: \"\"' line='    lbFloatingIP: \"${floatingIP}\"' state=present backrefs=yes"
+  bin/openshift-install --dir=initial create install-config
+  # fix the floating ip in the install-config.yaml
+  if [[ ! -z "$floatingIP" ]]
+  then
+    echo -e "\nNow we edit the install-config.yaml file to add the floating ip we created.\n"
+    #sed -i -e "s/    lbFloatingIP: \"\"/    lbFloatingIP: \"${floatingIP}\"/g" initial/install-config.yaml
+    ansible localhost -m lineinfile -a "dest=initial/install-config.yaml regexp='^    lbFloatingIP: \"\"' line='    lbFloatingIP: \"${floatingIP}\"' state=present backrefs=yes"
+  else
+    echo "WARNING: Floating IP was not created, you will have to manually add the floating IP to the api instance"
+  fi
 else
-  echo "WARNING: Floating IP was not created, you will have to manually add the floating IP to the api instance"
+  #sed -i -e "s/    lbFloatingIP: \"\"/    lbFloatingIP: \"${floatingIP}\"/g" initial/install-config.yaml
+  popd
+  ansible localhost -m -e "floatingIP=${floatingIP}" template -a "src=install-config.yaml.j2 dest='{{ homedir }}/go/src/github.com/openshift/installer/initial/install-config.yaml'"
+  pushd ~/go/src/github.com/openshift/installer
 fi
 
 # create the cluster
