@@ -1,29 +1,43 @@
 ---
 ## make sure this is correct. The go/src/ directory goes in your home dir
-homedir: /home/dataylor
+homedir: /home/cloud-user
 # the name of the cluster and your subdomain for the cluster.
-# urls will look like this: api.cluster4.dev.maskedadmins.com
+# urls will look like this: api.cluster1.ocp.yourdomain.com
 cluster:
-  name: cluster4
-  basedomain: dev.maskedadmins.com
-## setup.sh passes this in as an extra var to setup the clouds.yaml for the build playbook
+  name: cluster1
+  basedomain: ocp.yourdomain.com
+# get this from https://cloud.openshift.com/clusters/install
+  pull_secret: '{"auths":{"xxxxxxxxx"}}'
+# setup.sh passes this in as an extra var 
+# to setup the clouds.yaml for the build playbook
+# if you use setup.sh, you can leave this empty
+# if you use the playbooks directly, fill this out
 currentdir: ""
 cloud:
 # installer expects the name openstack
   name: openstack
   authurl: http://10.55.102.159:5000/v3
   user: admin
-  pass: xxxxxx
-  project: Redhat_Lab
-  sshpubkey: dtaylor-openstack
+  pass: xxxxx
+  project: My_Project
+  sshpubkey: yourkey
+# the external network to use for Openshift
+# only use vlan if you already set it up
+# and know what you are doing
+# you might need to adjust the 
+# build-ocp-environment.yaml to handle your
+# network type
 network:
   name: Openshift_External
   type: vlan
+# only used when network['type'] == 'vlan'
 vlan:
   id: 109
   physnet: inter-vlan
-## floating ip comes from this subnet
-## make sure it is routable
+# floating ip to access your cluster
+# comes from this subnet
+# make sure it is routable
+# on  your network
 subnet:
   name: OPENSHIFT_109
   cidr: 10.55.109.0/24
