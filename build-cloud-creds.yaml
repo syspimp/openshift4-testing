@@ -3,7 +3,7 @@
   hosts: localhost
   tasks:
     - name: "Setup check"
-      debug:
+      fail:
         msg: "You need to edit the group_vars/all file first. Please exit with Ctrl-C"
       when: (cloud.pass == "xxxxxx") or (currentdir == "")
 
