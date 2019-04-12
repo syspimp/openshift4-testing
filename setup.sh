@@ -200,7 +200,7 @@ else
   User: kubeadmin\n\
   Pass: `cat ./initial/auth/kubeadmin-password`\n\n\
   Update your /etc/hosts file:\n\
-  `grep $clustername /etc/hosts`
+  `grep $clustername /etc/hosts`"
   echo "the installer is in ~/go/src/github.com/openshift/installer"
   echo "the cluster config is in ~/go/src/github.com/openshift/installer/initial"
   echo "the cluster kubeconfig is in ~/go/src/github.com/openshift/installer/initial/auth"
