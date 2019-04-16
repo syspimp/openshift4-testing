@@ -82,11 +82,11 @@
         repo: "https://github.com/openshift/installer.git"
         dest: "{{ homedir }}/go/src/github.com/openshift/installer"
 
-    - name: "Checkout a specific revision of openshift installer"
-      shell: |
-        git checkout b4b6ee8631cdd4d566e4fe800ddcfd4ad87afcbc
-      args:
-        chdir: "{{ homedir }}/go/src/github.com/openshift/installer"
+#    - name: "Checkout a specific revision of openshift installer"
+#      shell: |
+#        git checkout b4b6ee8631cdd4d566e4fe800ddcfd4ad87afcbc
+#      args:
+#        chdir: "{{ homedir }}/go/src/github.com/openshift/installer"
 
     - name: "Adding unapplied patch found in github.com/openshift/installer merge requests, remove as needed."
       template: 
