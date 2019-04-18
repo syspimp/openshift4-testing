@@ -1,29 +1,11 @@
---- installer/cmd/openshift-install/create.go.orig	2019-04-04 13:41:04.438575266 -0400
-+++ installer/cmd/openshift-install/create.go	2019-04-04 13:41:41.868422780 -0400
-@@ -235,7 +235,7 @@
+--- installer/cmd/openshift-install/create.go	2019-04-18 13:08:32.531475695 -0400
++++ installer/cmd/openshift-install/create.go.orig	2019-04-18 13:08:21.509853500 -0400
+@@ -276,7 +276,7 @@
+ // and waits for the bootstrap configmap to report that bootstrapping has
+ // completed.
+ func waitForBootstrapConfigMap(ctx context.Context, client *kubernetes.Clientset) error {
+-	timeout := 60 * time.Minute
++	timeout := 30 * time.Minute
+ 	logrus.Infof("Waiting up to %v for bootstrapping to complete...", timeout)
  
- 	discovery := client.Discovery()
- 
--	apiTimeout := 30 * time.Minute
-+	apiTimeout := 60 * time.Minute
- 	logrus.Infof("Waiting up to %v for the Kubernetes API at %s...", apiTimeout, config.Host)
- 	apiContext, cancel := context.WithTimeout(ctx, apiTimeout)
- 	defer cancel()
-@@ -269,7 +269,7 @@
- 		return errors.Wrap(err, "waiting for Kubernetes API")
- 	}
- 
--	eventTimeout := 30 * time.Minute
-+	eventTimeout := 60 * time.Minute
- 	logrus.Infof("Waiting up to %v for the bootstrap-complete event...", eventTimeout)
- 	return waitForEvent(ctx, client.CoreV1().RESTClient(), "bootstrap-complete", eventTimeout)
- }
-@@ -370,7 +370,7 @@
- 		return "", errors.Wrap(err, "creating a route client")
- 	}
- 
--	consoleRouteTimeout := 10 * time.Minute
-+	consoleRouteTimeout := 20 * time.Minute
- 	logrus.Infof("Waiting up to %v for the openshift-console route to be created...", consoleRouteTimeout)
- 	consoleRouteContext, cancel := context.WithTimeout(ctx, consoleRouteTimeout)
- 	defer cancel()
+ 	waitCtx, cancel := context.WithTimeout(ctx, timeout)
