@@ -1,5 +1,5 @@
---- installer/cmd/openshift-install/create.go	2019-04-19 05:08:01.583354559 -0400
-+++ installer/cmd/openshift-install/create.go.orig	2019-04-19 05:07:48.994641019 -0400
+--- installer/cmd/openshift-install/create.go.orig	2019-04-26 07:01:15.735447568 -0400
++++ installer/cmd/openshift-install/create.go	2019-04-26 07:02:04.830430039 -0400
 @@ -238,7 +238,7 @@
  
  	discovery := client.Discovery()
@@ -9,3 +9,22 @@
  	logrus.Infof("Waiting up to %v for the Kubernetes API at %s...", apiTimeout, config.Host)
  	apiContext, cancel := context.WithTimeout(ctx, apiTimeout)
  	defer cancel()
+@@ -279,7 +279,7 @@
+ // and waits for the bootstrap configmap to report that bootstrapping has
+ // completed.
+ func waitForBootstrapConfigMap(ctx context.Context, client *kubernetes.Clientset) error {
+-	timeout := 30 * time.Minute
++	timeout := 60 * time.Minute
+ 	logrus.Infof("Waiting up to %v for bootstrapping to complete...", timeout)
+ 
+ 	waitCtx, cancel := context.WithTimeout(ctx, timeout)
+@@ -317,7 +317,7 @@
+ // waitForInitializedCluster watches the ClusterVersion waiting for confirmation
+ // that the cluster has been initialized.
+ func waitForInitializedCluster(ctx context.Context, config *rest.Config) error {
+-	timeout := 30 * time.Minute
++	timeout := 60 * time.Minute
+ 	logrus.Infof("Waiting up to %v for the cluster at %s to initialize...", timeout, config.Host)
+ 	cc, err := configclient.NewForConfig(config)
+ 	if err != nil {
+

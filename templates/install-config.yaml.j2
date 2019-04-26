@@ -28,3 +28,5 @@ platform:
     region: RegionOne
     trunkSupport: "1"
 pullSecret: '{{ cluster['pull_secret'] }}'
+sshKey: |
+  {{ cloud['sshpubkey'] }}

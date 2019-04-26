@@ -94,10 +94,9 @@
         dest: "{{ homedir }}/go/src/github.com/openshift/{{ item }}"
         mode: 0644
       loop:
-        -  "installconfig.go.patch"
-        -  "openstack.go.patch"
-#        -  "main.tf.patch"
-        -  "create.go.patch"
+        -  "installconfig.go.patch" # enable openstack option
+        -  "openstack.go.patch" # patch region name
+        -  "create.go.patch" # increase timeouts
 
     - name: "Adding clouds.yaml"
       template: 
@@ -116,12 +115,6 @@
         patch -p0 < ./openstack.go.patch
       args:
         chdir: "{{ homedir }}/go/src/github.com/openshift"
-
-#    - name: "this patch fixes the haproxy container on the api server"
-#      shell: |
-#        patch -p0 < ./main.tf.patch
-#      args:
-#        chdir: "{{ homedir }}/go/src/github.com/openshift"
 
     - name: "this patch doubles the timeout values so setup can complete"
       shell: |
@@ -201,7 +194,6 @@
         state: present
         name: get_float_ip
         image: rhcos
-        key_name: "{{ cloud['sshpubkey'] }}"
         flavor: m1.small
         network: "temp-network"
         auto_ip: yes
@@ -275,6 +267,7 @@
         - "console-openshift-console.apps.{{ cluster['name'] }}.{{ cluster['basedomain'] }}"
         - "api.{{ cluster['name'] }}.{{ cluster['basedomain'] }}"
         - "openshift-authentication-openshift-authentication.apps.{{ cluster['name'] }}.{{ cluster['basedomain'] }}"
+        - "integrated-oauth-server-openshift-authentication.apps.{{ cluster['name'] }}.{{ cluster['basedomain'] }}"
 
     - name: "Add Floating IP address /etc/hosts"
       lineinfile:
@@ -287,6 +280,7 @@
         - "console-openshift-console.apps.{{ cluster['name'] }}.{{ cluster['basedomain'] }}"
         - "api.{{ cluster['name'] }}.{{ cluster['basedomain'] }}"
         - "openshift-authentication-openshift-authentication.apps.{{ cluster['name'] }}.{{ cluster['basedomain'] }}"
+        - "integrated-oauth-server-openshift-authentication.apps.{{ cluster['name'] }}.{{ cluster['basedomain'] }}"
 
     - name: "Adding floating ip to include file for step2.sh"
       copy: 
